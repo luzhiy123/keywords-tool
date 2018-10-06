@@ -1,8 +1,7 @@
 let express = require('express');
 let router = express.Router();
 let pool = require('../db');
-let _ = require('lodash')
-let getDefaultPlats = require('./getDefaultPlats');
+let _ = require('lodash');
 
 // 登录与注册
 router.post('/user/register', function (req, res) {
