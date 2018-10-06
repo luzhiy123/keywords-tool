@@ -8,8 +8,8 @@
     </modal>
   <a class="generator-block button is-info is-outlined add" @click="add">+</a>
   <router-link v-for="generator in generators" :key="generator.id" :to="{ path: `plates/${generator.id}`}" class="generator-block button is-primary" >
+    <span>{{generator.name}}</span>
     <a class="button is-danger is-fullwidth" title="删除"  @click.stop="deleteGenerator($event, generator.id)">删除</a>
-    {{generator.name}}
   </router-link>
   
 </div>
@@ -100,7 +100,8 @@ export default {
   transition: height 0.5s;
 }
 .generator-block:hover .is-danger {
-  height: 20px;
+  height: 22px;
+  line-height: 22px;
 }
 
 .generator-block.add {

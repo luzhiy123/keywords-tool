@@ -7,15 +7,17 @@
       <input type="file" @change="parseExcel" id="parseExcel" v-show="false" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
       <button @click="parseClick" class="button r is-primary bottom-btn">导入</button>
       <button @click="exportExcel" class="button r is-primary bottom-btn">导出</button>
-      <button @click="add" class="button r is-primary bottom-btn">添加</button>
+      <button @click="add" class="button r is-primary bottom-btn">添加关键词</button>
        <a href="" download="标题生成器.xlsx" id="hf"></a>
     </div>
     <div class="clearfix">
       
         <SelectObj :categories="categories"></SelectObj>
-        <div  v-for="(plate, index) in filteredPlates" :key="plate.id">
+        <div v-for="(plate, index) in filteredPlates" :key="plate.id">
           <Select :plate="plate" :index="index"></Select>
         </div>
+        <div v-if="!filteredPlates.length && categories.length" class="center"> 当前分类没有关键词，请先<a @click="add" class="link">添加关键词</a></div>
+        <div v-if="!categories.length" class="center"> 当前还未有分类，请先<a @click="addCategory" class="link">添加分类</a></div>
     </div>
     <modal title="已生成标题"  :is-show="isShowTitle" @close="isShowTitle=false">
       <p class="control">
@@ -56,17 +58,42 @@ export default {
     isArray(arr) {
       return _.isArray(arr);
     },
+
+    addCategory() {
+      let eventType = JSON.stringify(this.categories) + "addcategory";
+      bus.$once(eventType, data => {
+        this.$http
+          .post("/api/categories/change", {
+            id: this.$route.params.id,
+            categories: [data]
+          })
+          .then(data => {
+            this.loadData();
+          });
+      });
+      bus.$emit("open-model", {
+        eventType: eventType,
+        title: `添加分类`,
+        type: "edit",
+        data: []
+      });
+    },
     loadData() {
-      this.$http
-        .get("/api/plates/get", {
+      Promise.all([
+        this.$http.get("/api/categories/get", {
+          params: {
+            id: this.$route.params.id
+          }
+        }),
+        this.$http.get("/api/plates/get", {
           params: {
             generatorid: this.$route.params.id
           }
         })
-        .then(data => {
-          this.plates = data;
-          this.categories = _.uniq(this.plates.map(plate => plate.category));
-        });
+      ]).then(res => {
+        this.categories = res[0];
+        this.plates = res[1];
+      });
     },
     deletePlate(id) {
       this.$http.delete(`/api/plate/${id}`).then(() => {

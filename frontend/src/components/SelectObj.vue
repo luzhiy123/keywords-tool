@@ -10,13 +10,11 @@
                 <li class="checkbox-wrap" v-for="category in categories" :key="category">
                     <label :title="category"><input type="radio" :value="category" v-model="checkedCategory">{{category}}</label>
                     <span class="pull-right">
-                        <i class="fa fa-pencil-square text-gray" @click="editCategory(category)" title="编辑词语"></i>
                         <i class="fa fa-trash text-danger" @click="deleteCategory(category)" title="删除词语"></i>
                     </span>
                 </li>
             </ul>
         </div>
-        <!-- <button class="button is-warning is-fullwidth" type="button" @click="clearCategory()">清空{{object.name}}</button> -->
     </div>
                 </div>
 </template>
@@ -34,10 +32,6 @@ export default {
   },
   data() {
     return {
-      object: {
-        name: "分类",
-        options: []
-      },
       checkedCategory: ""
     };
   },
@@ -47,22 +41,39 @@ export default {
       this.category = val;
       bus.$emit("category-select-change", val);
     },
+    categories(val) {
+      if (!this.category) {
+        this.checkedCategory = val[0];
+      }
+    }
   },
   methods: {
     addCategory() {
-      let eventType = JSON.stringify(this.plate) + "addcategory";
-      bus.$once(eventType, arr => {
-        arr.forEach(item => {
-          // if (!this.plate.options[item]) {
-          //   this.plate.options[item] = [];
-          // }
-        });
-        this.categories.push(...arr);
+      let eventType = JSON.stringify(this.categories) + "addcategory";
+      bus.$once(eventType, data => {
+        if (this.categories.indexOf(data) > -1) {
+          this.$notify.open({
+            content: "当前名称与已有名称重复！",
+            duration: 1000,
+            type: "danger"
+          });
+        } else {
+          let categories = [...this.categories, data]
+          this.$http
+            .post("/api/categories/change", {
+              id: this.$route.params.id,
+              categories: categories
+            })
+            .then(() => {
+              this.checkedCategory = data;
+              bus.$emit("loadPlates");
+            });
+        }
       });
       bus.$emit("open-model", {
         eventType: eventType,
         title: `添加分类`,
-        type: "add",
+        type: "edit",
         data: []
       });
     },
@@ -83,8 +94,8 @@ export default {
     deleteCategory(category) {
       this.$http.delete(`/api/plate-by-category/${category}`).then(() => {
         bus.$emit("loadPlates");
-      })
-      }
+      });
+    }
   }
 };
 </script>

@@ -38,8 +38,22 @@ router.get('/generators/get', function (req, res) {
 
 router.post('/generator/add', function (req, res) {
     console.log('addgenerator', req.body)
-    pool.query(`INSERT INTO "generators" ("name", "userid") VALUES ($1, $2)`, [req.body.name, getUserId(req)], (err, r) => {
+    pool.query(`INSERT INTO "generators" ("name", "userid", "categories") VALUES ($1, $2, '[]')`, [req.body.name, getUserId(req)], (err, r) => {
         res.json(err ? err : r)
+    })
+});
+
+router.post('/categories/change', function (req, res) {
+    console.log('changeCategory', req.body)
+    pool.query(`UPDATE generators SET categories = $1  WHERE id = $2`, [JSON.stringify(req.body.categories), req.body.id], (err, r) => {
+        res.json(err ? err : r)
+    })
+});
+
+router.get('/categories/get', function (req, res) {
+    console.log('getCategory', req.query)
+    pool.query(`SELECT categories FROM "generators" WHERE "id" = $1`, [req.query.id], (err, r) => {
+        res.json(err ? err : JSON.parse(r.rows[0].categories));
     })
 });
 

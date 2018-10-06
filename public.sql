@@ -12,7 +12,7 @@
  Target Server Version : 100005
  File Encoding         : 65001
 
- Date: 06/10/2018 22:59:16
+ Date: 07/10/2018 00:17:07
 */
 
 
@@ -56,7 +56,8 @@ DROP TABLE IF EXISTS "public"."generators";
 CREATE TABLE "public"."generators" (
   "id" int8 NOT NULL DEFAULT nextval('generator_id'::regclass),
   "userid" int4 NOT NULL,
-  "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL
+  "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "categories" varchar(1000) COLLATE "pg_catalog"."default" NOT NULL
 )
 ;
 
@@ -87,9 +88,9 @@ CREATE TABLE "public"."users" (
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
-SELECT setval('"public"."generator_id"', 60, true);
-SELECT setval('"public"."plate_id"', 209, true);
-SELECT setval('"public"."test_id_seq"', 107, true);
+SELECT setval('"public"."generator_id"', 62, true);
+SELECT setval('"public"."plate_id"', 212, true);
+SELECT setval('"public"."test_id_seq"', 108, true);
 
 -- ----------------------------
 -- Uniques structure for table generators
