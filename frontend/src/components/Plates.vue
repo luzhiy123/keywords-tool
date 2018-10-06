@@ -2,18 +2,19 @@
 <div>
     <EditModel/>
      <router-link :to="{name: 'generator'}" class="back">> 返回</router-link>
-    <a class="button is-danger is-outlined is-fullwidth"  @click="build()">生成标题</a>
+    <button class="button is-danger is-fullwidth"  @click="build()" :disabled="!category">生成标题</button>
     <div class="btn-group clearfix">
       <input type="file" @change="parseExcel" id="parseExcel" v-show="false" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
       <button @click="parseClick" class="button r is-primary bottom-btn">导入</button>
       <button @click="exportExcel" class="button r is-primary bottom-btn">导出</button>
       <button @click="add" class="button r is-primary bottom-btn">添加</button>
-       <a href="" download="plate.xlsx" id="hf"></a>
+       <a href="" download="标题生成器.xlsx" id="hf"></a>
     </div>
     <div class="clearfix">
-        <div  v-for="(plate, index) in plates" :key="plate.id">
-          <Select :plate="plate" :index="index" v-if="isArray(plate.options)"></Select>
-          <SelectObj :plate="plate" :index="index" v-if="!isArray(plate.options)"></SelectObj>
+      
+        <SelectObj :categories="categories"></SelectObj>
+        <div  v-for="(plate, index) in filteredPlates" :key="plate.id">
+          <Select :plate="plate" :index="index"></Select>
         </div>
     </div>
     <modal title="已生成标题"  :is-show="isShowTitle" @close="isShowTitle=false">
@@ -43,6 +44,8 @@ export default {
   },
   data() {
     return {
+      categories: [],
+      category: "",
       selected: [],
       plates: [],
       isShowTitle: false,
@@ -62,6 +65,7 @@ export default {
         })
         .then(data => {
           this.plates = data;
+          this.categories = _.uniq(this.plates.map(plate => plate.category));
         });
     },
     deletePlate(id) {
@@ -70,37 +74,15 @@ export default {
       });
     },
     exportExcel() {
-      let data = [[]];
-      let row = 0;
-      this.plates.forEach(plate => {
-        if (_.isArray(plate.options)) {
-          let col = 0;
-          addData(row, col++, plate.name);
-          plate.options.forEach(option => {
-            addData(row, col++, option);
-          });
-          row++;
-        } else {
-          let col = 0;
-          addData(row, col++, "分类", plate.name);
-          for (let key in plate.options) {
-            plate.options[key].forEach(option => {
-              addData(row, col++, key, option);
-            });
-          }
-          row = row + 2;
+      let data = [["类别", "关键词类"]];
+      let plates = _.orderBy(this.plates, "category");
+      plates.forEach(plate => {
+        let row = [plate.category, plate.name, ...plate.options];
+        while (row.length > data[0].length) {
+          data[0].push("");
         }
+        data.push(row);
       });
-      function addData(row, col, ...arr) {
-        console.log(row, col, arr);
-        if (!data[col]) {
-          data[col] = [];
-        }
-        while (data[col].length < row) {
-          data[col].push("");
-        }
-        data[col].push(...arr);
-      }
       console.log(data);
       exportExcel(data);
     },
@@ -114,66 +96,41 @@ export default {
           .then(data => {
             let platesData = [];
             e.target.value = "";
-            _.forEach(data, (col, colIndex) => {
-              _.forEach(col, (item, rowIndex) => {
-                if (colIndex === 0) {
-                  platesData.push({
-                    name: item,
-                    options: item === "分类" ? {} : []
-                  });
-                } else {
-                  let plate = platesData[rowIndex];
-                  if (_.isArray(plate.options)) {
-                    item && plate.options.push(item);
-                  } else {
-                    let nextValue = col[parseInt(rowIndex) + 1];
-                    if (plate.options[item]) {
-                      plate.options[item].push(nextValue);
-                    } else {
-                      plate.options[item] = [nextValue];
-                    }
-                  }
-                }
-              });
-            });
-            let category;
-            let promise = [];
-            let maxIndex = this.getNewIndex();
             let importData = {
               changes: [],
               adds: []
             };
-            platesData.forEach((item, index) => {
-              if (item.name === "分类") {
-                category = item;
-              } else {
-                if (category) {
-                  item.options = category.options;
-                  category = undefined;
-                }
-                let plate = this.plates.find(plate => plate.name === item.name);
+            _.forEach(data, row => {
+              row = _.toArray(row);
+              if (row[0] !== "类别" && row.length >= 3) {
+                let [category, name, ...options] = row;
+                let plate = this.plates.find(
+                  plate =>
+                    plate.name === item.name && plate.category === category
+                );
                 if (plate) {
-                  plate.options = item.options;
+                  plate.options = options;
                   importData.changes.push(plate);
                 } else {
                   importData.adds.push({
-                    name: item.name,
-                    options: item.options,
-                    index: maxIndex + index,
-                    generatorid: this.$route.params.id
+                    name: name,
+                    options: options,
+                    generatorid: this.$route.params.id,
+                    category: category
                   });
                 }
               }
             });
-
-            this.$http.post("/api/plates/import", importData).then(() => {
-              this.loadData();
-              this.$notify.open({
-                content: "导入成功",
-                duration: 1000,
-                type: "success"
+            if (importData.adds.length || importData.changes.length) {
+              this.$http.post("/api/plates/import", importData).then(() => {
+                this.loadData();
+                this.$notify.open({
+                  content: "导入成功",
+                  duration: 1000,
+                  type: "success"
+                });
               });
-            });
+            }
           })
           .catch(msg => {
             this.$notify.open({
@@ -188,7 +145,6 @@ export default {
       let modal = {
         name: "",
         options: [],
-        index: this.getNewIndex(),
         generatorid: this.$route.params.id
       };
       let eventType = JSON.stringify(modal) + "add";
@@ -199,14 +155,19 @@ export default {
             duration: 1000,
             type: "danger"
           });
-        } else if (this.plates.find(plate => plate.name === name)) {
+        } else if (
+          this.plates.find(plate => {
+            return plate.name === name && plate.category === this.category;
+          })
+        ) {
           this.$notify.open({
-            content: "名称重复！",
+            content: "当前分类已有该项属性！",
             duration: 1000,
             type: "danger"
           });
         } else {
           modal.name = name;
+          modal.category = this.category;
           this.$http.post("/api/plate/add", modal).then(() => {
             this.loadData();
           });
@@ -219,15 +180,6 @@ export default {
         data: ""
       });
     },
-    getNewIndex() {
-      let index = 0;
-      this.plates.forEach(plate => {
-        if (plate.index > index) {
-          index = plate.index;
-        }
-      });
-      return ++index;
-    },
     build() {
       this.isShowTitle = true;
       let list = [];
@@ -237,7 +189,7 @@ export default {
           group.forEach(item => {
             if (list.length) {
               list.forEach(val => {
-                buildList.push(val + item);
+                buildList.push(this.category + val + item);
               });
             }
           });
@@ -258,6 +210,86 @@ export default {
     bus.$on("plate-select-change", msg => {
       this.selected[msg.index] = msg.list;
     });
+
+    bus.$on("category-select-change", val => {
+      this.category = val;
+    });
+  },
+  computed: {
+    filteredPlates() {
+      return this.plates.filter(plate => plate.category === this.category);
+    }
   }
 };
 </script>
+<style>
+.fa {
+  cursor: pointer;
+}
+.pull-left {
+  margin-top: 4px;
+}
+.thumbnail {
+  border: 1px solid #f9d8a2;
+  margin-bottom: 10px;
+  display: block;
+  margin-bottom: 20px;
+  line-height: 1.42857143;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  -webkit-transition: border 0.2s ease-in-out;
+  -o-transition: border 0.2s ease-in-out;
+  transition: border 0.2s ease-in-out;
+}
+.key-info {
+  background-color: #f2e6d2;
+  color: #b08133;
+  overflow: hidden;
+  padding: 5px 6px 8px 13px;
+}
+.key-info .pull-right {
+  margin-top: 5px;
+  margin-right: 7px;
+}
+ul {
+  list-style: none;
+  padding: 0 5px;
+  margin-top: 0px;
+  padding-top: 5px;
+  height: 400px;
+  overflow: auto;
+}
+ul li {
+  height: 30px;
+  padding-left: 8px;
+}
+.checkbox-wrap {
+  position: relative;
+  display: block;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  line-height: normal !important;
+}
+.checkbox-wrap label {
+  cursor: pointer;
+  width: 50%;
+  display: inline-block;
+}
+.pull-left .checkbox-wrap label {
+  width: auto;
+}
+.checkbox-wrap input {
+  vertical-align: text-bottom;
+  margin-right: 5px;
+}
+
+.text-gray,
+.text-danger {
+  color: #aaa;
+  cursor: pointer;
+}
+.checkbox-wrap + .checkbox-wrap,
+.radio + .radio {
+  margin-top: -5px;
+}
+</style>

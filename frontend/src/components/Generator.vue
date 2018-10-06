@@ -1,7 +1,6 @@
 <template>
 <div>
-      <modal title="添加" :on-ok="save" :is-show="isShow" @close="isShow=false">
-
+    <modal title="添加" :on-ok="save" :is-show="isShow" @close="isShow=false">
     <label class="label">名称：</label>
     <p class="control">
         <input class="input" type="text" v-model="modal.name" placeholder="输入生成器名称">
@@ -9,9 +8,7 @@
     </modal>
   <a class="generator-block button is-info is-outlined add" @click="add">+</a>
   <router-link v-for="generator in generators" :key="generator.id" :to="{ path: `plates/${generator.id}`}" class="generator-block button is-primary" >
-    <a @click.stop>
-    <i class="fa fa-trash" title="删除"  @click.stop="deleteGenerator($event, generator.id)"></i>
-    </a>
+    <a class="button is-danger is-fullwidth" title="删除"  @click.stop="deleteGenerator($event, generator.id)">删除</a>
     {{generator.name}}
   </router-link>
   
@@ -46,18 +43,32 @@ export default {
     deleteGenerator(event, id) {
       event.stopPropagation();
       event.preventDefault();
-      this.$http.delete(`/api/generator/${id}`).then(() => {
-        this.loadData();
+      this.$modal.confirm({
+        content: "确定删除这条信息?",
+        onOk: () =>
+          this.$http.delete(`/api/generator/${id}`).then(() => {
+            this.loadData();
+          })
       });
     },
     save() {
-      this.$http
-        .post("/api/generator/add", {
-          name: this.modal.name
-        })
-        .then(data => {
-          this.loadData();
+      if (
+        this.generators.find(generator => generator.name === this.modal.name)
+      ) {
+        this.$notify.open({
+          content: "当前名称与已有名称重复！",
+          duration: 1000,
+          type: "danger"
         });
+      } else {
+        this.$http
+          .post("/api/generator/add", {
+            name: this.modal.name
+          })
+          .then(data => {
+            this.loadData();
+          });
+      }
     }
   },
   mounted() {
@@ -65,7 +76,7 @@ export default {
   }
 };
 </script>
-<style>
+<style scoped>
 .generator-block {
   display: inline-block;
   min-width: 100px;
@@ -75,25 +86,23 @@ export default {
   border: 1px solid #ccc;
   text-align: center;
   border-radius: 5px;
-  padding: 0 15px;
   margin: 10px;
   vertical-align: text-bottom;
   position: relative;
+  padding: 0;
 }
-.generator-block:hover .fa-trash {
-  display: block;
-}
-.generator-block .fa-trash {
-  display: none;
+.generator-block .is-danger {
+  height: 0;
   position: absolute;
-  top: 0;
-  right: 0;
-  color: #f56954;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  transition: height 0.5s;
 }
-.generator-block .fa-trash:hover {
+.generator-block:hover .is-danger {
+  height: 20px;
+}
 
-  color: #fff;
-}
 .generator-block.add {
   font-size: 28px;
 }

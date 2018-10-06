@@ -40,11 +40,6 @@ router.get('/generators/get', function (req, res) {
 router.post('/generator/add', function (req, res) {
     console.log('addgenerator', req.body)
     pool.query(`INSERT INTO "generators" ("name", "userid") VALUES ($1, $2)`, [req.body.name, getUserId(req)], (err, r) => {
-        let plates = ['地区', '类别', '关键词', '品牌', '业务'];
-        pool.query(`SELECT * FROM "generators" WHERE "userid"=$2 AND "name"=$1`, [req.body.name, getUserId(req)], (m, n) => {
-            console.info('befor add plates', m ? m : n.rows)
-            getDefaultPlats(n.rows[0].id).forEach((params) => { addPlat(params) })
-        })
         res.json(err ? err : r)
     })
 });
@@ -60,9 +55,9 @@ router.delete('/generator/:id', function (req, res) {
 
 router.get('/plates/get', function (req, res) {
     console.log('getplates', req.query)
-    pool.query(`SELECT * FROM "plates" WHERE "generatorid" = $1 ORDER BY index`, [req.query.generatorid], (err, r) => {
+    pool.query(`SELECT * FROM "plates" WHERE "generatorid" = $1 ORDER BY id`, [req.query.generatorid], (err, r) => {
         _.forEach(r.rows, row => row.options = JSON.parse(row.options))
-        console.log(r.rows)
+        // console.log(r.rows)
         res.json(err ? err : r.rows)
     })
 });
@@ -90,7 +85,7 @@ router.post('/plates/import', function (req, res) {
     console.log('importplates', req.body)
     let promise = [];
     req.body.adds.forEach(params => {
-        promise.push(poolPromise(`INSERT INTO "plates" ("name", "options", "index", "generatorid") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), params.index, params.generatorid]))
+        promise.push(poolPromise(`INSERT INTO "plates" ("name", "options", "generatorid", "category") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), params.generatorid, params.category]))
 
     })
     req.body.changes.forEach(plate => {
@@ -115,25 +110,19 @@ router.delete('/plate/:id', function (req, res) {
     })
 });
 
+router.delete('/plate-by-category/:category', function (req, res) {
+    console.log('deleteplate', req.params)
+    pool.query(`DELETE FROM plates WHERE category = $1;`, [req.params.category], (err, r) => {
+        res.json(err ? err : r)
+    })
+});
+
 router.put('/plate/change', function (req, res) {
     console.log('plateChange', req.body)
     pool.query(`UPDATE plates SET (name, options) = ($1, $2)  WHERE id = $3`, [req.body.name, JSON.stringify(req.body.options), req.body.id], (err, r) => {
         res.json(err ? err : r)
     })
 });
-
-// router.post('/plates/changeIndex', function (req, res) {
-//     pool.query(`SELECT * FROM "plates" WHERE "userid" = $1`, [getUserId(req)], (err, r) => {
-//         res.json(err ? err : r)
-//     })
-
-// });
-
-// function setIndex(id, index) {
-//     pool.query(`UPDATE plates SET index = $2  WHERE userid = $1`, [id, index], (err, r) => {
-//         res.json(err ? err : r)
-//     })
-// }
 
 function getUserId(req) {
     let user = JSON.parse(req.query.user)
@@ -143,7 +132,7 @@ function getUserId(req) {
 
 function addPlat(params, callback) {
     console.log("addPlatSQL", params)
-    pool.query(`INSERT INTO "plates" ("name", "options", "index", "generatorid") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), params.index, params.generatorid], callback)
+    pool.query(`INSERT INTO "plates" ("name", "options", "generatorid", "category") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), params.generatorid, params.category], callback)
 }
 
 // 返回数据

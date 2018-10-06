@@ -1,10 +1,10 @@
 <template>
 <div class="meun">
     <div class="thumbnail">
-        <div class="key-info"> <span class="pull-left">
+        <div class="key-info clearfix"> <span class="pull-left">
                 <div class="checkbox-wrap"><label><input type="checkbox" value="all" v-model="selectedAll" title="点击可以全选当前分类词语"><strong>{{plate.name}}</strong></label></div>
             </span> <span class="pull-right">
-              <i class="fa fa-minus-square" v-if="index>3" @click="deleteConfirm()"></i>
+              <i class="fa fa-minus-square" @click="deleteConfirm()"></i>
               <i class="fa fa-plus-square" @click="add()" title="点击可以添加更多关键词"></i>
               </span>
         </div>
@@ -61,8 +61,16 @@ export default {
       let eventType = JSON.stringify(this.plate) + "option";
       bus.$once(eventType, newVal => {
         let plate = _.cloneDeep(this.plate);
-        plate.options.splice(index, 1, newVal);
-        this.changeData(plate);
+        if (plate.options.indexOf(newVal) > -1) {
+          this.$notify.open({
+            content: "当前名称与已有名称重复或者未修改当前名称！",
+            duration: 1000,
+            type: "danger"
+          });
+        } else {
+          plate.options.splice(index, 1, newVal);
+          this.changeData(plate);
+        }
       });
       bus.$emit("open-model", {
         eventType: eventType,
@@ -81,8 +89,8 @@ export default {
     },
     deleteConfirm() {
       this.$modal.confirm({
-        content: '确定删除这条信息?',
-        onOk: this.deletePlate,
+        content: "确定删除这条信息?",
+        onOk: this.deletePlate
       });
     },
     deletePlate() {
@@ -94,8 +102,24 @@ export default {
       let eventType = JSON.stringify(this.plate) + "change";
       bus.$once(eventType, options => {
         let plate = _.cloneDeep(this.plate);
-        plate.options.push(...options);
-        this.changeData(plate);
+        let repetition = [];
+        let newOptions = [];
+        options.forEach(option => {
+          if (plate.options.indexOf(option) === -1) {
+            newOptions.push(option);
+          } else {
+            repetition.push(option);
+          }
+        });
+        plate.options.push(...newOptions);
+        if (repetition.length) {
+          this.$notify.confirm({
+            content: `以下选项重复：${repetition.toString()}，将不会被添加到！`,
+            onOk: () => this.changeData(plate)
+          });
+        } else if (options.length) {
+          this.changeData(plate);
+        }
       });
       bus.$emit("open-model", {
         eventType: eventType,
@@ -108,75 +132,3 @@ export default {
   mounted() {}
 };
 </script>
-<style>
-.fa {
-  cursor: pointer;
-}
-.pull-left {
-  margin-top: 4px;
-}
-.thumbnail {
-  border: 1px solid #f9d8a2;
-  margin-bottom: 10px;
-  display: block;
-  margin-bottom: 20px;
-  line-height: 1.42857143;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  -webkit-transition: border 0.2s ease-in-out;
-  -o-transition: border 0.2s ease-in-out;
-  transition: border 0.2s ease-in-out;
-}
-.key-info {
-  background-color: #f2e6d2;
-  color: #b08133;
-  overflow: hidden;
-  padding: 5px 6px 8px 13px;
-}
-.key-info .pull-right {
-  margin-top: 5px;
-  margin-right: 7px;
-}
-ul {
-  list-style: none;
-  padding: 0 5px;
-  margin-top: 0px;
-  padding-top: 5px;
-  height: 400px;
-  overflow: auto;
-}
-ul li {
-  height: 30px;
-  padding-left: 8px;
-}
-.checkbox-wrap {
-  position: relative;
-  display: block;
-  margin-top: 0px;
-  margin-bottom: 0px;
-  line-height: normal !important;
-}
-.checkbox-wrap label {
-  cursor: pointer;
-  width: 50%;
-  display: inline-block;
-}
-.pull-left .checkbox-wrap label {
-  width: auto;
-}
-.checkbox-wrap input {
-  vertical-align: text-bottom;
-  margin-right: 5px;
-}
-
-.text-gray,
-.text-danger {
-  color: #aaa;
-  cursor: pointer;
-}
-.checkbox-wrap + .checkbox-wrap,
-.radio + .radio {
-  margin-top: -5px;
-}
-</style>
-
