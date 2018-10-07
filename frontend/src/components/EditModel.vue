@@ -35,7 +35,7 @@ export default {
           .compact()
           .value();
       } else {
-        this.modal.replace(' ', '')
+        this.modal = this.modal.replace(' ', '')
       }
       bus.$emit(this.eventType, this.modal);
       this.isShow = false;

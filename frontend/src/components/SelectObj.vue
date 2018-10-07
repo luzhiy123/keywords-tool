@@ -7,10 +7,10 @@
                 </span> <span class="pull-right"><i class="fa fa-plus-square" @click="addCategory()" title="点击可以添加更多关键词"></i></span>
             </div>
             <ul>
-                <li class="checkbox-wrap" v-for="category in categories" :key="category">
-                    <label :title="category"><input type="radio" :value="category" v-model="checkedCategory">{{category}}</label>
+                <li class="checkbox-wrap" v-for="category in categories" :key="category.id">
+                    <label :title="category"><input type="radio" :value="category.id" v-model="checkedCategoryId">{{category.name}}</label>
                     <span class="pull-right">
-                        <i class="fa fa-trash text-danger" @click="deleteCategory(category)" title="删除词语"></i>
+                        <i class="fa fa-trash text-danger" @click="deleteCategory(category.id)" title="删除词语"></i>
                     </span>
                 </li>
             </ul>
@@ -32,40 +32,46 @@ export default {
   },
   data() {
     return {
-      checkedCategory: ""
+      checkedCategoryId: ""
     };
   },
   props: ["categories"],
   watch: {
-    checkedCategory(val) {
-      this.category = val;
+    checkedCategoryId(val) {
+      this.checkedCategoryId = val;
       bus.$emit("category-select-change", val);
     },
     categories(val) {
-      if (!this.category) {
-        this.checkedCategory = val[0];
+      if (this.addName) {
+        let category = _.find(val, category => category.name === this.addName);
+        this.addName = null;
+        if (category) {
+          this.checkedCategoryId = category.id;
+        }
+      }
+      if (!this.checkedCategoryId) {
+        this.checkedCategoryId = val[0] && val[0].id;
       }
     }
   },
   methods: {
     addCategory() {
       let eventType = JSON.stringify(this.categories) + "addcategory";
-      bus.$once(eventType, data => {
-        if (this.categories.indexOf(data) > -1) {
+      bus.$once(eventType, name => {
+        if (this.categories.find(category => category.name === name)) {
           this.$notify.open({
             content: "当前名称与已有名称重复！",
             duration: 1000,
             type: "danger"
           });
         } else {
-          let categories = [...this.categories, data]
           this.$http
-            .post("/api/categories/change", {
-              id: this.$route.params.id,
-              categories: categories
+            .post("/api/category/add", {
+              generatorid: this.$route.params.id,
+              name: name
             })
             .then(() => {
-              this.checkedCategory = data;
+              this.addName = name;
               bus.$emit("loadPlates");
             });
         }
@@ -91,9 +97,13 @@ export default {
         data: category
       });
     },
-    deleteCategory(category) {
-      this.$http.delete(`/api/plate-by-category/${category}`).then(() => {
-        bus.$emit("loadPlates");
+    deleteCategory(id) {
+      this.$modal.confirm({
+        content: "确定删除该分类？",
+        onOk: () =>
+          this.$http.delete(`/api/category/${id}`).then(() => {
+            bus.$emit("loadPlates");
+          })
       });
     }
   }

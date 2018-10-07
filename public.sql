@@ -12,9 +12,20 @@
  Target Server Version : 100005
  File Encoding         : 65001
 
- Date: 07/10/2018 00:17:07
+ Date: 07/10/2018 11:54:34
 */
 
+
+-- ----------------------------
+-- Sequence structure for categories_id
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."categories_id";
+CREATE SEQUENCE "public"."categories_id" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 9223372036854775807
+START 1
+CACHE 1;
 
 -- ----------------------------
 -- Sequence structure for generator_id
@@ -50,14 +61,24 @@ START 1
 CACHE 1;
 
 -- ----------------------------
+-- Table structure for categories
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."categories";
+CREATE TABLE "public"."categories" (
+  "id" int8 NOT NULL DEFAULT nextval('categories_id'::regclass),
+  "generatorid" int8 NOT NULL,
+  "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL
+)
+;
+
+-- ----------------------------
 -- Table structure for generators
 -- ----------------------------
 DROP TABLE IF EXISTS "public"."generators";
 CREATE TABLE "public"."generators" (
   "id" int8 NOT NULL DEFAULT nextval('generator_id'::regclass),
   "userid" int4 NOT NULL,
-  "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
-  "categories" varchar(1000) COLLATE "pg_catalog"."default" NOT NULL
+  "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL
 )
 ;
 
@@ -70,7 +91,7 @@ CREATE TABLE "public"."plates" (
   "generatorid" int8 NOT NULL,
   "options" varchar(1000000) COLLATE "pg_catalog"."default" NOT NULL,
   "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
-  "category" varchar(255) COLLATE "pg_catalog"."default" NOT NULL
+  "categoryid" int8 NOT NULL
 )
 ;
 
@@ -88,9 +109,15 @@ CREATE TABLE "public"."users" (
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
-SELECT setval('"public"."generator_id"', 62, true);
-SELECT setval('"public"."plate_id"', 212, true);
-SELECT setval('"public"."test_id_seq"', 108, true);
+SELECT setval('"public"."categories_id"', 89, true);
+SELECT setval('"public"."generator_id"', 75, true);
+SELECT setval('"public"."plate_id"', 360, true);
+SELECT setval('"public"."test_id_seq"', 110, true);
+
+-- ----------------------------
+-- Uniques structure for table categories
+-- ----------------------------
+ALTER TABLE "public"."categories" ADD CONSTRAINT "uniquecategories_name_generatorid" UNIQUE ("name", "generatorid");
 
 -- ----------------------------
 -- Uniques structure for table generators
@@ -100,7 +127,7 @@ ALTER TABLE "public"."generators" ADD CONSTRAINT "unique_name_userid" UNIQUE ("n
 -- ----------------------------
 -- Uniques structure for table plates
 -- ----------------------------
-ALTER TABLE "public"."plates" ADD CONSTRAINT "unique_name_generatorid" UNIQUE ("options", "generatorid");
+ALTER TABLE "public"."plates" ADD CONSTRAINT "unique_name_generatorid_categoryid" UNIQUE ("name", "generatorid", "categoryid");
 
 -- ----------------------------
 -- Uniques structure for table users

@@ -3,6 +3,17 @@ let router = express.Router();
 let pool = require('../db');
 let _ = require('lodash');
 
+function poolPromise(sql, params) {
+    return new Promise(function (resolve) {
+        pool.query(sql, params, (err, r) => {
+            resolve({
+                err: err,
+                res: r
+            })
+        })
+    });
+}
+
 // 登录与注册
 router.post('/user/register', function (req, res) {
     console.log('register', req.body)
@@ -38,27 +49,44 @@ router.get('/generators/get', function (req, res) {
 
 router.post('/generator/add', function (req, res) {
     console.log('addgenerator', req.body)
-    pool.query(`INSERT INTO "generators" ("name", "userid", "categories") VALUES ($1, $2, '[]')`, [req.body.name, getUserId(req)], (err, r) => {
+    pool.query(`INSERT INTO "generators" ("name", "userid") VALUES ($1, $2)`, [req.body.name, getUserId(req)], (err, r) => {
         res.json(err ? err : r)
     })
 });
 
-router.post('/categories/change', function (req, res) {
+router.post('/category/add', function (req, res) {
+    console.log('addgenerator', req.body)
+    pool.query(`INSERT INTO "categories" ("name", "generatorid") VALUES ($1, $2)`, [req.body.name, req.body.generatorid], (err, r) => {
+        res.json(err ? err : r)
+    })
+});
+
+router.post('/category/change', function (req, res) {
     console.log('changeCategory', req.body)
-    pool.query(`UPDATE generators SET categories = $1  WHERE id = $2`, [JSON.stringify(req.body.categories), req.body.id], (err, r) => {
+    pool.query(`UPDATE categories SET name = $1  WHERE id = $2`, [req.body.name, req.body.id], (err, r) => {
         res.json(err ? err : r)
     })
 });
 
 router.get('/categories/get', function (req, res) {
     console.log('getCategory', req.query)
-    pool.query(`SELECT categories FROM "generators" WHERE "id" = $1`, [req.query.id], (err, r) => {
-        res.json(err ? err : JSON.parse(r.rows[0].categories));
+    pool.query(`SELECT * FROM "categories" WHERE "generatorid" = $1`, [req.query.id], (err, r) => {
+        res.json(err ? err : r.rows);
+    })
+});
+
+
+router.delete('/category/:id', function (req, res) {
+    console.log('addgenerator', req.body)
+    pool.query(`DELETE FROM categories WHERE id = $1;`, [req.params.id])
+    pool.query(`DELETE FROM plates WHERE categoryid = $1;`, [req.params.id], (err, r) => {
+        res.json(err ? err : r)
     })
 });
 
 router.delete('/generator/:id', function (req, res) {
     console.log('deletegenerator', req.params)
+    pool.query(`DELETE FROM categories WHERE generatorid = $1;`, [req.params.id])
     pool.query(`DELETE FROM plates WHERE generatorid = $1;`, [req.params.id])
     pool.query(`DELETE FROM generators WHERE id = $1;`, [req.params.id], (err, r) => {
         res.json(err ? err : r)
@@ -83,36 +111,63 @@ router.delete('/plate/:id', function (req, res) {
     })
 });
 
-function poolPromise(sql, params) {
-    return new Promise(function (resolve) {
-        pool.query(sql, params, (err, r) => {
-            resolve({
-                err: err,
-                res: r
-            })
-        })
-    });
-}
-
 router.post('/plates/import', function (req, res) {
     console.log('importplates', req.body)
     let promise = [];
-    req.body.adds.forEach(params => {
-        promise.push(poolPromise(`INSERT INTO "plates" ("name", "options", "generatorid", "category") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), params.generatorid, params.category]))
 
-    })
+    // 改
     req.body.changes.forEach(plate => {
-        promise.push(poolPromise(`UPDATE plates SET (name, options) = ($1, $2)  WHERE id = $3`, [plate.name, JSON.stringify(plate.options), plate.id]));
+        promise.push(poolPromise(`UPDATE plates SET (name, options) = ($2, $3)  WHERE id = $1`, [plate.id, plate.name, JSON.stringify(plate.options)]));
     })
-    Promise.all(promise).then(msg => {
-        res.json(msg)
+
+    // 增加
+    poolPromise(`SELECT * FROM "categories" WHERE "generatorid" = $1`, [req.body.generatorid]).then(data => {
+        let categories = data.res.rows;
+        let categoryNames = _.chain(req.body.adds)
+            .map('categoryName')
+            .uniq()
+            .compact()
+            .value();
+        _.forEach(categoryNames, name => {
+            if (!categories.find(category => category.name === name)) {
+                promise.push(poolPromise(`INSERT INTO "categories" ("name", "generatorid") VALUES ($1, $2)`, [name, req.body.generatorid]))
+            }
+        })
+
+
+        Promise.all(promise).then(() => {
+            poolPromise(`SELECT * FROM "categories" WHERE "generatorid" = $1`, [req.body.generatorid]).then(data => {
+                if (data.res) {
+                    let categories = data.res.rows;
+                    req.body.adds.forEach(params => {
+                        params.categoryid = getIdByName(params.categoryName);
+                        promise.push(poolPromise(`INSERT INTO "plates" ("name", "options", "generatorid", "categoryid") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), req.body.generatorid, params.categoryid]))
+
+                    })
+                    Promise.all(promise).then(msg => {
+                        res.json(msg)
+                    })
+
+                    function getIdByName(name) {
+                        let category = categories.find(category => category.name === name) || {};
+                        return category.id;
+                    }
+
+                } else {
+                    res.json({
+                        detail: '服务器错误！'
+                    })
+                }
+            })
+        })
     })
 });
 
+
 router.post('/plate/add', function (req, res) {
     console.log("addPlat", req.body)
-    addPlat(req.body, (err, r) => {
-        res.json(err ? err : r)
+    addPlat(req.body).then(data => {
+        res.json(data.err ? data.err : data.res)
     })
 });
 
@@ -143,9 +198,9 @@ function getUserId(req) {
 
 }
 
-function addPlat(params, callback) {
+function addPlat(params) {
     console.log("addPlatSQL", params)
-    pool.query(`INSERT INTO "plates" ("name", "options", "generatorid", "category") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), params.generatorid, params.category], callback)
+    return poolPromise(`INSERT INTO "plates" ("name", "options", "generatorid", "categoryid") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), params.generatorid, params.categoryid])
 }
 
 // 返回数据

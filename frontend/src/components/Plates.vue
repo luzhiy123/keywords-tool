@@ -2,26 +2,37 @@
 <div>
     <EditModel/>
      <router-link :to="{name: 'generator'}" class="back">> 返回</router-link>
-    <button class="button is-danger is-fullwidth"  @click="build()" :disabled="!category">生成标题</button>
+    <button class="button is-danger is-fullwidth"  @click="build()" :disabled="!categoryid">生成标题</button>
     <div class="btn-group clearfix">
       <input type="file" @change="parseExcel" id="parseExcel" v-show="false" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
       <button @click="parseClick" class="button r is-primary bottom-btn">导入</button>
       <button @click="exportExcel" class="button r is-primary bottom-btn">导出</button>
-      <button @click="add" class="button r is-primary bottom-btn">添加关键词</button>
+      <button @click="add" class="button r is-primary bottom-btn">添加关键词类</button>
+      <button @click="isSlice=!isSlice" class="button r is-primary bottom-btn" v-if="filteredPlates.length > 7">{{ isSlice ? '显示更多' : '隐藏'}}</button>
        <a href="" download="标题生成器.xlsx" id="hf"></a>
     </div>
     <div class="clearfix">
-      
         <SelectObj :categories="categories"></SelectObj>
         <div v-for="(plate, index) in filteredPlates" :key="plate.id">
-          <Select :plate="plate" :index="index"></Select>
+          <Select :plate="plate" :index="index" v-show="!isSlice || index < 7"></Select>
         </div>
-        <div v-if="!filteredPlates.length && categories.length" class="center"> 当前分类没有关键词，请先<a @click="add" class="link">添加关键词</a></div>
-        <div v-if="!categories.length" class="center"> 当前还未有分类，请先<a @click="addCategory" class="link">添加分类</a></div>
+        <div v-if="!filteredPlates.length && categories.length" class="letter center">
+          <span>当前分类没有关键词类，请先</span>
+          <a @click="add" class="link">添加关键词类</a>
+        </div>
+        <div v-if="!categories.length" class="letter center">
+          <span>当前还未有分类，请先</span>
+          <a @click="addCategory" class="link">添加分类</a>
+          <span>或</span>
+          <a @click="parseClick" class="link">导入数据</a>
+        </div>
+        <div v-if="filteredPlates.length > 7" class="letter l">
+          <a @click="isSlice=!isSlice" class="link">{{ isSlice ? '显示更多' : '隐藏'}}</a>
+        </div>
     </div>
-    <modal title="已生成标题"  :is-show="isShowTitle" @close="isShowTitle=false">
+    <modal title="已生成标题"  :is-show="isShowTitle" :on-cancel="() => isShowTitle=false" :on-ok="copyTitle" ok-text="复制" cancel-text="关闭">
       <p class="control">
-          <textarea class="textarea" v-model="titleContent"></textarea>
+          <textarea class="textarea title-content" v-model="titleContent"></textarea>
       </p>
     </modal>
 </div>
@@ -47,11 +58,12 @@ export default {
   data() {
     return {
       categories: [],
-      category: "",
+      categoryid: null,
       selected: [],
       plates: [],
       isShowTitle: false,
-      titleContent: ""
+      titleContent: "",
+      isSlice: true
     };
   },
   methods: {
@@ -63,9 +75,9 @@ export default {
       let eventType = JSON.stringify(this.categories) + "addcategory";
       bus.$once(eventType, data => {
         this.$http
-          .post("/api/categories/change", {
-            id: this.$route.params.id,
-            categories: [data]
+          .post("/api/category/add", {
+            generatorid: this.$route.params.id,
+            name: data
           })
           .then(data => {
             this.loadData();
@@ -95,16 +107,24 @@ export default {
         this.plates = res[1];
       });
     },
-    deletePlate(id) {
-      this.$http.delete(`/api/plate/${id}`).then(() => {
-        this.loadData();
-      });
+    getCategoryid(name) {
+      let category =
+        this.categories.find(category => category.name === name) || {};
+      return category.id;
+    },
+    getCategoryName(id) {
+      let category = this.categories.find(category => category.id === id) || {};
+      return category.name;
     },
     exportExcel() {
       let data = [["类别", "关键词类"]];
-      let plates = _.orderBy(this.plates, "category");
+      let plates = _.orderBy(this.plates, "categoryid");
       plates.forEach(plate => {
-        let row = [plate.category, plate.name, ...plate.options];
+        let row = [
+          this.getCategoryName(plate.categoryid),
+          plate.name,
+          ...plate.options
+        ];
         while (row.length > data[0].length) {
           data[0].push("");
         }
@@ -124,26 +144,28 @@ export default {
             let platesData = [];
             e.target.value = "";
             let importData = {
+              generatorid: this.$route.params.id,
               changes: [],
               adds: []
             };
             _.forEach(data, row => {
               row = _.toArray(row);
               if (row[0] !== "类别" && row.length >= 3) {
-                let [category, name, ...options] = row;
+                let [categoryName, name, ...options] = row;
                 let plate = this.plates.find(
                   plate =>
-                    plate.name === item.name && plate.category === category
+                    plate.name === name &&
+                    this.getCategoryid(categoryName) === plate.categoryid
                 );
                 if (plate) {
+                  plate = _.cloneDeep(plate);
                   plate.options = options;
                   importData.changes.push(plate);
                 } else {
                   importData.adds.push({
                     name: name,
                     options: options,
-                    generatorid: this.$route.params.id,
-                    category: category
+                    categoryName: categoryName
                   });
                 }
               }
@@ -184,7 +206,7 @@ export default {
           });
         } else if (
           this.plates.find(plate => {
-            return plate.name === name && plate.category === this.category;
+            return plate.name === name && plate.categoryid === this.categoryid;
           })
         ) {
           this.$notify.open({
@@ -194,7 +216,7 @@ export default {
           });
         } else {
           modal.name = name;
-          modal.category = this.category;
+          modal.categoryid = this.categoryid;
           this.$http.post("/api/plate/add", modal).then(() => {
             this.loadData();
           });
@@ -202,26 +224,34 @@ export default {
       });
       bus.$emit("open-model", {
         eventType: eventType,
-        title: "添加新列",
+        title: "添加关键词类",
         type: "edit",
         data: ""
       });
     },
+    copyTitle() {
+      let currentFocus = document.activeElement;
+      let  titleContent = document.querySelector('.title-content')
+      titleContent.focus();
+      titleContent.setSelectionRange(0, titleContent.value.length);
+      document.execCommand("copy", true);
+      currentFocus.focus();
+    },
     build() {
       this.isShowTitle = true;
       let list = [];
-      this.selected.forEach(group => {
+      _.forEach(this.selected, group => {
         let buildList = [];
         if (list.length) {
           group.forEach(item => {
-            if (list.length) {
-              list.forEach(val => {
-                buildList.push(this.category + val + item);
-              });
-            }
+            list.forEach(val => {
+              buildList.push(val + item);
+            });
           });
         } else {
-          buildList = [...group];
+          group.forEach(item => {
+            buildList.push(this.getCategoryName(this.categoryid) + item);
+          });
         }
         list = buildList;
       });
@@ -239,17 +269,26 @@ export default {
     });
 
     bus.$on("category-select-change", val => {
-      this.category = val;
+      this.categoryid = val;
+      this.selected = {};
     });
   },
   computed: {
     filteredPlates() {
-      return this.plates.filter(plate => plate.category === this.category);
+      return this.plates.filter(plate => plate.categoryid === this.categoryid);
+    },
+    slicefilteredPlates() {
+      return this.isSlice
+        ? this.filteredPlates.slice(0, 7)
+        : this.filteredPlates;
     }
   }
 };
 </script>
 <style>
+.letter {
+  margin-top: 50px;
+}
 .fa {
   cursor: pointer;
 }

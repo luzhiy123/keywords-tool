@@ -80,11 +80,18 @@ export default {
       });
     },
     deleteOption(option) {
-      _.remove(this.plate.options, item => item === option);
-      this.changeData(this.plate);
+      this.$modal.confirm({
+        content: "确定删除该词语？",
+        onOk: () => {
+          _.remove(this.plate.options, item => item === option);
+          _.remove(this.checkedNames, item => item === option);
+          this.changeData(this.plate);
+        }
+      });
     },
     clear() {
       this.plate.options = [];
+      this.checkedNames = [];
       this.changeData(this.plate);
     },
     deleteConfirm() {
@@ -113,8 +120,8 @@ export default {
         });
         plate.options.push(...newOptions);
         if (repetition.length) {
-          this.$notify.confirm({
-            content: `以下选项重复：${repetition.toString()}，将不会被添加到！`,
+          this.$modal.confirm({
+            content: `以下选项重复：${repetition.toString()}，将不会被添加到，确认添加？`,
             onOk: () => this.changeData(plate)
           });
         } else if (options.length) {
