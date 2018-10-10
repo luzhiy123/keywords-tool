@@ -1,7 +1,7 @@
 
 let express = require('express');
 
-let port = 3000;
+let port = require('./config.json').port;
 
 // 处理前端提交过来的数据
 let bodyParser = require('body-parser');
