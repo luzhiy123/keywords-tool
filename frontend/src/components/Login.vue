@@ -58,8 +58,16 @@ export default {
             password: this.password
           })
           .then(data => {
-            localStorage.setItem("user", JSON.stringify(data));
-            this.$router.push("home");
+            if (data) {
+              localStorage.setItem("user", JSON.stringify(data));
+              this.$router.push("home");
+            } else {
+              this.$notify.open({
+                content: "账号或密码错误！",
+                duration: 1000,
+                type: "danger"
+              });
+            }
           });
       }
     }

@@ -119,15 +119,17 @@ export default {
     exportExcel() {
       let data = [["类别", "关键词类"]];
       let plates = _.orderBy(this.plates, "categoryid");
+      let lastCategoryId;
       plates.forEach(plate => {
         let row = [
-          this.getCategoryName(plate.categoryid),
+          lastCategoryId === plate.categoryid ? '' : this.getCategoryName(plate.categoryid),
           plate.name,
           ...plate.options
         ];
         while (row.length > data[0].length) {
           data[0].push("");
         }
+        lastCategoryId = plate.categoryid;
         data.push(row);
       });
       console.log(data);
@@ -148,14 +150,16 @@ export default {
               changes: [],
               adds: []
             };
+            let lastCategoryName = '';
             _.forEach(data, row => {
               row = _.toArray(row);
               if (row[0] !== "类别" && row.length >= 3) {
                 let [categoryName, name, ...options] = row;
+                lastCategoryName = categoryName || lastCategoryName;
                 let plate = this.plates.find(
                   plate =>
                     plate.name === name &&
-                    this.getCategoryid(categoryName) === plate.categoryid
+                    this.getCategoryid(lastCategoryName) === plate.categoryid
                 );
                 if (plate) {
                   plate = _.cloneDeep(plate);
@@ -165,7 +169,7 @@ export default {
                   importData.adds.push({
                     name: name,
                     options: options,
-                    categoryName: categoryName
+                    categoryName: lastCategoryName
                   });
                 }
               }
@@ -231,7 +235,7 @@ export default {
     },
     copyTitle() {
       let currentFocus = document.activeElement;
-      let  titleContent = document.querySelector('.title-content')
+      let titleContent = document.querySelector(".title-content");
       titleContent.focus();
       titleContent.setSelectionRange(0, titleContent.value.length);
       document.execCommand("copy", true);
@@ -315,7 +319,6 @@ export default {
 }
 .key-info .pull-right {
   margin-top: 5px;
-  margin-right: 7px;
 }
 ul {
   list-style: none;
@@ -345,7 +348,8 @@ ul li {
   width: auto;
 }
 .checkbox-wrap input {
-  vertical-align: text-bottom;
+  display: inline-block;
+  vertical-align: middle;
   margin-right: 5px;
 }
 
