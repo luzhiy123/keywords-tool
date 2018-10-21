@@ -4,17 +4,17 @@
      <router-link :to="{name: 'generator'}" class="back">> 返回</router-link>
     <button class="button is-danger is-fullwidth"  @click="build()" :disabled="!categoryid">生成标题</button>
     <div class="btn-group clearfix">
+      <a href="" download="标题生成器.xlsx" id="hf"  v-show="false"></a>
       <input type="file" @change="parseExcel" id="parseExcel" v-show="false" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
       <button @click="parseClick" class="button r is-primary bottom-btn">导入</button>
       <button @click="exportExcel" class="button r is-primary bottom-btn">导出</button>
       <button @click="add" class="button r is-primary bottom-btn">添加关键词类</button>
-      <button @click="isSlice=!isSlice" class="button r is-primary bottom-btn" v-if="filteredPlates.length > 7">{{ isSlice ? '显示更多' : '隐藏'}}</button>
-       <a href="" download="标题生成器.xlsx" id="hf"></a>
+      <button @click="clearSelected" class="button r is-primary bottom-btn">重置选择</button>
     </div>
     <div class="clearfix">
-        <SelectObj :categories="categories"></SelectObj>
+        <SelectObj :categories="categories" :plates="plates"></SelectObj>
         <div v-for="(plate, index) in filteredPlates" :key="plate.id">
-          <Select :plate="plate" :index="index" v-show="!isSlice || index < 7"></Select>
+          <Select :plate="plate" :index="index" :plates="plates"></Select>
         </div>
         <div v-if="!filteredPlates.length && categories.length" class="letter center">
           <span>当前分类没有关键词类，请先</span>
@@ -26,12 +26,10 @@
           <span>或</span>
           <a @click="parseClick" class="link">导入数据</a>
         </div>
-        <div v-if="filteredPlates.length > 7" class="letter l">
-          <a @click="isSlice=!isSlice" class="link">{{ isSlice ? '显示更多' : '隐藏'}}</a>
-        </div>
     </div>
     <modal title="已生成标题"  :is-show="isShowTitle" :on-cancel="() => isShowTitle=false" :on-ok="copyTitle" ok-text="复制" cancel-text="关闭">
       <p class="control">
+          添加间隔：<b-switch on-text="开" off-text="关" v-model="withSeptal"></b-switch>
           <textarea class="textarea title-content" v-model="titleContent"></textarea>
       </p>
     </modal>
@@ -57,6 +55,7 @@ export default {
   },
   data() {
     return {
+      withSeptal: false,
       categories: [],
       categoryid: null,
       selected: [],
@@ -66,9 +65,64 @@ export default {
       isSlice: true
     };
   },
+  watch: {
+    withSeptal(val) {
+      this.build();
+    }
+  },
   methods: {
     isArray(arr) {
       return _.isArray(arr);
+    },
+
+    clearSelected() {
+      this.selected = {};
+      bus.$emit("clearSelected");
+    },
+    copyPlate(plate) {
+     let eventType = JSON.stringify(plate) + "addPlate";
+      bus.$once(eventType, newVal => {
+        plate = _.cloneDeep(plate)
+        if (this.plates.find(item => item.name === newVal)) {
+          this.$modal.alert({
+            content: "当前名称与已有名称重复或者未修改当前名称！"
+          });
+        } else {
+          plate.name = newVal;
+          this.$http.post("/api/plate/add", plate).then(() => {
+            this.loadData();
+          });
+        }
+      });
+      bus.$emit("open-model", {
+        eventType: eventType,
+        title: "拷贝列",
+        type: "edit",
+        data: plate.name + '_copy'
+      });
+    },
+
+    changeName(plate) {
+      let eventType = JSON.stringify(plate) + "editPlateName";
+      bus.$once(eventType, newVal => {
+        plate = _.cloneDeep(plate);
+        if (this.plates.find(item => item.name === newVal)) {
+          this.$modal.alert({
+            content: "当前名称与已有名称重复或者未修改当前名称！"
+          });
+        } else {
+          plate.name = newVal;
+          this.$http.put("/api/plate/change", plate).then(() => {
+            bus.$emit("loadPlates");
+          });
+        }
+      });
+      bus.$emit("open-model", {
+        eventType: eventType,
+        title: "编辑名称",
+        type: "edit",
+        data: plate.name
+      });
     },
 
     addCategory() {
@@ -122,7 +176,9 @@ export default {
       let lastCategoryId;
       plates.forEach(plate => {
         let row = [
-          lastCategoryId === plate.categoryid ? '' : this.getCategoryName(plate.categoryid),
+          lastCategoryId === plate.categoryid
+            ? ""
+            : this.getCategoryName(plate.categoryid),
           plate.name,
           ...plate.options
         ];
@@ -150,7 +206,7 @@ export default {
               changes: [],
               adds: []
             };
-            let lastCategoryName = '';
+            let lastCategoryName = "";
             _.forEach(data, row => {
               row = _.toArray(row);
               if (row[0] !== "类别" && row.length >= 3) {
@@ -177,19 +233,16 @@ export default {
             if (importData.adds.length || importData.changes.length) {
               this.$http.post("/api/plates/import", importData).then(() => {
                 this.loadData();
-                this.$notify.open({
-                  content: "导入成功",
-                  duration: 1000,
+                this.$modal.alert({
+                  content: "导入成功！",
                   type: "success"
                 });
               });
             }
           })
           .catch(msg => {
-            this.$notify.open({
-              content: msg,
-              duration: 1000,
-              type: "danger"
+            this.$modal.alert({
+              content: msg
             });
           });
       }
@@ -203,20 +256,16 @@ export default {
       let eventType = JSON.stringify(modal) + "add";
       bus.$once(eventType, name => {
         if (name === "分类") {
-          this.$notify.open({
-            content: "不能命名为‘分类’！",
-            duration: 1000,
-            type: "danger"
+          this.$modal.alert({
+            content: "不能命名为‘分类’！"
           });
         } else if (
           this.plates.find(plate => {
             return plate.name === name && plate.categoryid === this.categoryid;
           })
         ) {
-          this.$notify.open({
-            content: "当前分类已有该项属性！",
-            duration: 1000,
-            type: "danger"
+          this.$modal.alert({
+            content: "当前分类已有该项属性！"
           });
         } else {
           modal.name = name;
@@ -249,12 +298,13 @@ export default {
         if (list.length) {
           group.forEach(item => {
             list.forEach(val => {
-              buildList.push(val + item);
+              val = val + (this.withSeptal ? ' ' : '') + item
+              buildList.push(val);
             });
           });
         } else {
           group.forEach(item => {
-            buildList.push(this.getCategoryName(this.categoryid) + item);
+            buildList.push(item);
           });
         }
         list = buildList;
@@ -276,6 +326,11 @@ export default {
       this.categoryid = val;
       this.selected = {};
     });
+  },
+  beforeDestroy() {
+    bus.$off("loadPlates");
+    bus.$off("plate-select-change");
+    bus.$off("category-select-change");
   },
   computed: {
     filteredPlates() {

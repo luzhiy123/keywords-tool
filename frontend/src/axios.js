@@ -33,7 +33,7 @@ axios.interceptors.response.use(
             })
         } else if (response.status == 200) {
             if (response.data.detail) {
-                Vue.prototype.$notify.open({ content: response.data.detail, type: "danger" });
+                Vue.prototype.$modal.alert({ content: response.data.detail, type: "danger" });
                 return Promise.reject();
             } else {
                 return response.data

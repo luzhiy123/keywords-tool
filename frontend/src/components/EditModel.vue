@@ -2,12 +2,12 @@
     <modal :title="title" :on-ok="save" :on-cancel="cancelCb" :is-show="isShow" @close="isShow=false">
     <div v-if="type==='add'">
       <p class="control">
-          <textarea class="textarea" v-model="modal" placeholder="添加多个请使用空格分割"></textarea>
+          <textarea class="textarea" v-model="modal" placeholder="添加多个请使用逗号（，或,）分割"></textarea>
       </p>
     </div>
     <div v-if="type==='edit'">
       <p class="control">
-        <input class="input" type="text" v-model="modal" placeholder="编辑单个词语，空格将被清除">
+        <input class="input" type="text" v-model="modal" placeholder="编辑单个词语">
       </p>
     </div>
     </modal>
@@ -30,12 +30,10 @@ export default {
     save() {
       if (this.type === "add") {
         this.modal = _.chain(this.modal)
-          .split(" ")
+          .split(/，|,/)
           .uniq()
           .compact()
           .value();
-      } else {
-        this.modal = this.modal.replace(' ', '')
       }
       bus.$emit(this.eventType, this.modal);
       this.isShow = false;
@@ -52,6 +50,9 @@ export default {
       this.modal = _.cloneDeep(msg.data);
       this.isShow = true;
     });
-  }
+  },
+  beforeDestroy() {
+    bus.$off("open-model");
+  },
 };
 </script>

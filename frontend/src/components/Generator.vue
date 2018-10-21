@@ -55,10 +55,8 @@ export default {
       if (
         this.generators.find(generator => generator.name === this.modal.name)
       ) {
-        this.$notify.open({
-          content: "当前名称与已有名称重复！",
-          duration: 1000,
-          type: "danger"
+        this.$modal.alert({
+          content: "当前名称与已有名称重复！"
         });
       } else {
         this.$http

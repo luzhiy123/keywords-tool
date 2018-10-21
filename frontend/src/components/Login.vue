@@ -40,16 +40,12 @@ export default {
   methods: {
     login() {
       if (!this.username) {
-        this.$notify.open({
-          content: "账号不能为空！",
-          duration: 1000,
-          type: "danger"
+        this.$modal.alert({
+          content: "账号不能为空！"
         });
       } else if (!this.password) {
-        this.$notify.open({
-          content: "密码不能为空！",
-          duration: 1000,
-          type: "danger"
+        this.$modal.alert({
+          content: "密码不能为空！"
         });
       } else {
         this.$http
@@ -62,10 +58,8 @@ export default {
               localStorage.setItem("user", JSON.stringify(data));
               this.$router.push("home");
             } else {
-              this.$notify.open({
-                content: "账号或密码错误！",
-                duration: 1000,
-                type: "danger"
+              this.$modal.alert({
+                content: "账号或密码错误！"
               });
             }
           });

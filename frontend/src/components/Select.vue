@@ -4,8 +4,10 @@
         <div class="key-info clearfix"> <span class="pull-left">
                 <div class="checkbox-wrap"><label><input type="checkbox" value="all" v-model="selectedAll" title="点击可以全选当前分类词语"><strong>{{plate.name}}</strong></label></div>
             </span> <span class="pull-right">
-              <i class="fa fa-minus-square" @click="deleteConfirm()"></i>
+              <i class="fa fa-minus-square" @click="deleteConfirm()"  title="删除"></i>
               <i class="fa fa-plus-square" @click="add()" title="点击可以添加更多关键词"></i>
+              <i class="fa fa-clipboard" @click="copyPlate(plate)" title="复制列"></i>
+              <i class="fa fa-pencil-square" @click="changeName(plate)" title="修改名字"></i>
               </span>
         </div>
         <ul>
@@ -18,7 +20,7 @@
             </li>
         </ul>
     </div>
-    <button class="button is-warning is-fullwidth" type="button" @click="clear()">清空{{plate.name}}</button>
+    <button class="button is-warning is-fullwidth" type="button" @click="deleteSelected()">删除选中关键词</button>
 </div>
 </template>
 
@@ -35,7 +37,7 @@ export default {
       checkedNames: []
     };
   },
-  props: ["index", "plate"],
+  props: ["index", "plate", "plates"],
   watch: {
     selectedAll(val) {
       if (val.find(item => item === "all")) {
@@ -52,6 +54,50 @@ export default {
     }
   },
   methods: {
+    copyPlate(plate) {
+      let eventType = JSON.stringify(plate) + "addPlate";
+      bus.$once(eventType, newVal => {
+        plate = _.cloneDeep(plate);
+        if (this.plates.find(item => item.name === newVal)) {
+          this.$modal.alert({
+            content: "当前名称与已有名称重复或者未修改当前名称！"
+          });
+        } else {
+          plate.name = newVal;
+          this.$http.post("/api/plate/add", plate).then(() => {
+            bus.$emit("loadPlates");
+          });
+        }
+      });
+      bus.$emit("open-model", {
+        eventType: eventType,
+        title: "拷贝列",
+        type: "edit",
+        data: plate.name + "_copy"
+      });
+    },
+    changeName(plate) {
+      let eventType = JSON.stringify(plate) + "editPlateName";
+      bus.$once(eventType, newVal => {
+        plate = _.cloneDeep(plate);
+        if (this.plates.find(item => item.name === newVal)) {
+          this.$modal.alert({
+            content: "当前名称与已有名称重复或者未修改当前名称！"
+          });
+        } else {
+          plate.name = newVal;
+          this.$http.put("/api/plate/change", plate).then(() => {
+            bus.$emit("loadPlates");
+          });
+        }
+      });
+      bus.$emit("open-model", {
+        eventType: eventType,
+        title: "编辑名称",
+        type: "edit",
+        data: plate.name
+      });
+    },
     changeData(plate) {
       this.$http.put("/api/plate/change", plate).then(() => {
         bus.$emit("loadPlates");
@@ -62,10 +108,8 @@ export default {
       bus.$once(eventType, newVal => {
         let plate = _.cloneDeep(this.plate);
         if (plate.options.indexOf(newVal) > -1) {
-          this.$notify.open({
-            content: "当前名称与已有名称重复或者未修改当前名称！",
-            duration: 1000,
-            type: "danger"
+          this.$modal.alert({
+            content: "当前名称与已有名称重复或者未修改当前名称！"
           });
         } else {
           plate.options.splice(index, 1, newVal);
@@ -89,16 +133,24 @@ export default {
         }
       });
     },
-    clear() {
-      this.plate.options = [];
+    deleteSelected() {
+      this.plate.options = this.plate.options.filter(
+        item => !this.checkedNames.includes(item)
+      );
       this.checkedNames = [];
       this.changeData(this.plate);
     },
     deleteConfirm() {
-      this.$modal.confirm({
-        content: "确定删除这条信息?",
-        onOk: this.deletePlate
-      });
+      if (this.plate.options.length) {
+        this.$modal.alert({
+          content: "该列不为空，禁止删除！"
+        });
+      } else {
+        this.$modal.confirm({
+          content: "确定删除这列?",
+          onOk: this.deletePlate
+        });
+      }
     },
     deletePlate() {
       this.$http.delete(`/api/plate/${this.plate.id}`).then(() => {
@@ -136,6 +188,14 @@ export default {
       });
     }
   },
-  mounted() {}
+  mounted() {
+    bus.$on("clearSelected", () => {
+      this.selectedAll = [];
+      this.checkedNames = [];
+    });
+  },
+  beforeDestroy() {
+    bus.$off("clearSelected");
+  }
 };
 </script>

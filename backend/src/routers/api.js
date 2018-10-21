@@ -86,10 +86,26 @@ router.delete('/category/:id', function (req, res) {
 
 router.delete('/generator/:id', function (req, res) {
     console.log('deletegenerator', req.params)
-    pool.query(`DELETE FROM categories WHERE generatorid = $1;`, [req.params.id])
-    pool.query(`DELETE FROM plates WHERE generatorid = $1;`, [req.params.id])
-    pool.query(`DELETE FROM generators WHERE id = $1;`, [req.params.id], (err, r) => {
-        res.json(err ? err : r)
+    poolPromise(`SELECT * FROM "categories" WHERE "generatorid" = $1`, [req.params.id]).then((r) => {
+        if (r.err) {
+            res.json({
+                detail: '服务器错误！'
+            })
+        } else {
+            if (r.res.rows && r.res.rows.length) {
+                res.json({
+                    detail: '该模版不为空，禁止删除！'
+                })
+            } else {
+                pool.query(`DELETE FROM categories WHERE generatorid = $1;`, [req.params.id])
+                pool.query(`DELETE FROM plates WHERE generatorid = $1;`, [req.params.id])
+                pool.query(`DELETE FROM generators WHERE id = $1;`, [req.params.id], (err, r) => {
+                    res.json(err ? {
+                        detail: '服务器错误！'
+                    } : r)
+                })
+            }
+        }
     })
 });
 
