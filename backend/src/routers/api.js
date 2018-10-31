@@ -112,7 +112,7 @@ router.delete('/generator/:id', function (req, res) {
 
 router.get('/plates/get', function (req, res) {
     console.log('getplates', req.query)
-    pool.query(`SELECT * FROM "plates" WHERE "generatorid" = $1 ORDER BY id`, [req.query.generatorid], (err, r) => {
+    pool.query(`SELECT * FROM "plates" WHERE "generatorid" = $1 ORDER BY index, id`, [req.query.generatorid], (err, r) => {
         _.forEach(r.rows, row => row.options = JSON.parse(row.options))
         // console.log(r.rows)
         res.json(err ? err : r.rows)
@@ -205,6 +205,17 @@ router.put('/plate/change', function (req, res) {
     console.log('plateChange', req.body)
     pool.query(`UPDATE plates SET (name, options) = ($1, $2)  WHERE id = $3`, [req.body.name, JSON.stringify(req.body.options), req.body.id], (err, r) => {
         res.json(err ? err : r)
+    })
+});
+
+router.put('/plate/order/change', function (req, res) {
+    console.log('plateorderChange', req.body)
+    let promise = [];
+    req.body.ids.forEach((id, index) => {
+        promise.push(poolPromise(`UPDATE plates SET index = $1  WHERE id = $2`, [index, id]))
+    })
+    Promise.all(promise).then(msg => {
+        res.json(msg)
     })
 });
 

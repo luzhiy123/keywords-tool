@@ -5,12 +5,14 @@ import axios from './axios'
 
 import App from './App'
 import VueBlu from 'vue-blu'
+import VueDND from 'awe-dnd'
 import 'vue-blu/dist/css/vue-blu.min.css'
 import 'font-awesome-icons'
 
 import router from './router'
 
 Vue.use(VueBlu)
+Vue.use(VueDND)
 Vue.http = Vue.prototype.$http = axios
 Vue.config.productionTip = false
 

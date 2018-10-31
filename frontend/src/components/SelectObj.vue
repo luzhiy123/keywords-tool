@@ -85,7 +85,7 @@ export default {
     editCategory(category) {
       let eventType = JSON.stringify(this.plate) + "editcategory";
       bus.$once(eventType, newVal => {
-        if (this.categories.find(item => item.name === name)) {
+        if (this.categories.find(item => item.name === newVal)) {
           this.$modal.alert({
             content: "当前名称与已有名称重复！"
           });

@@ -1,5 +1,5 @@
 /*
- Navicat PostgreSQL Data Transfer
+ Navicat Premium Data Transfer
 
  Source Server         : los
  Source Server Type    : PostgreSQL
@@ -12,7 +12,7 @@
  Target Server Version : 100005
  File Encoding         : 65001
 
- Date: 07/10/2018 11:54:34
+ Date: 31/10/2018 22:02:37
 */
 
 
@@ -91,9 +91,11 @@ CREATE TABLE "public"."plates" (
   "generatorid" int8 NOT NULL,
   "options" varchar(1000000) COLLATE "pg_catalog"."default" NOT NULL,
   "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
-  "categoryid" int8 NOT NULL
+  "categoryid" int8 NOT NULL,
+  "index" int8
 )
 ;
+COMMENT ON COLUMN "public"."plates"."index" IS '排序index为主id次';
 
 -- ----------------------------
 -- Table structure for users
@@ -109,9 +111,9 @@ CREATE TABLE "public"."users" (
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
-SELECT setval('"public"."categories_id"', 89, true);
-SELECT setval('"public"."generator_id"', 75, true);
-SELECT setval('"public"."plate_id"', 360, true);
+SELECT setval('"public"."categories_id"', 100, true);
+SELECT setval('"public"."generator_id"', 76, true);
+SELECT setval('"public"."plate_id"', 384, true);
 SELECT setval('"public"."test_id_seq"', 110, true);
 
 -- ----------------------------
@@ -128,6 +130,11 @@ ALTER TABLE "public"."generators" ADD CONSTRAINT "unique_name_userid" UNIQUE ("n
 -- Uniques structure for table plates
 -- ----------------------------
 ALTER TABLE "public"."plates" ADD CONSTRAINT "unique_name_generatorid_categoryid" UNIQUE ("name", "generatorid", "categoryid");
+
+-- ----------------------------
+-- Primary Key structure for table plates
+-- ----------------------------
+ALTER TABLE "public"."plates" ADD CONSTRAINT "plates_pkey" PRIMARY KEY ("id");
 
 -- ----------------------------
 -- Uniques structure for table users

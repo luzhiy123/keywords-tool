@@ -13,8 +13,9 @@
     </div>
     <div class="clearfix">
         <SelectObj :categories="categories" :plates="plates"></SelectObj>
-        <div v-for="(plate, index) in filteredPlates" :key="plate.id">
-          <Select :plate="plate" :index="index" :plates="plates"></Select>
+        <div></div>
+        <div v-for="(plate, index) in filteredPlates" :key="plate.id" class="plate-item" v-dragging="{ item: plate, list: filteredPlates, group: 'plates' }">
+          <Select :plate="plate" :index="index" :plates="plates" ></Select>
         </div>
         <div v-if="!filteredPlates.length && categories.length" class="letter center">
           <span>当前分类没有关键词类，请先</span>
@@ -62,7 +63,8 @@ export default {
       plates: [],
       isShowTitle: false,
       titleContent: "",
-      isSlice: true
+      isSlice: true,
+      filteredPlates: []
     };
   },
   watch: {
@@ -80,9 +82,9 @@ export default {
       bus.$emit("clearSelected");
     },
     copyPlate(plate) {
-     let eventType = JSON.stringify(plate) + "addPlate";
+      let eventType = JSON.stringify(plate) + "addPlate";
       bus.$once(eventType, newVal => {
-        plate = _.cloneDeep(plate)
+        plate = _.cloneDeep(plate);
         if (this.plates.find(item => item.name === newVal)) {
           this.$modal.alert({
             content: "当前名称与已有名称重复或者未修改当前名称！"
@@ -98,7 +100,7 @@ export default {
         eventType: eventType,
         title: "拷贝列",
         type: "edit",
-        data: plate.name + '_copy'
+        data: plate.name + "_copy"
       });
     },
 
@@ -298,7 +300,7 @@ export default {
         if (list.length) {
           group.forEach(item => {
             list.forEach(val => {
-              val = val + (this.withSeptal ? ' ' : '') + item
+              val = val + (this.withSeptal ? " " : "") + item;
               buildList.push(val);
             });
           });
@@ -324,7 +326,17 @@ export default {
 
     bus.$on("category-select-change", val => {
       this.categoryid = val;
+      this.filteredPlates = this.plates.filter(
+        plate => plate.categoryid === this.categoryid
+      );
       this.selected = {};
+    });
+
+    this.$dragging.$on("dragend", aaa => {
+      let ids = this.filteredPlates.map(item => item.id);
+      this.$http.put("/api/plate/order/change", { ids: ids }).then(() => {
+        this.clearSelected();
+      });
     });
   },
   beforeDestroy() {
@@ -333,14 +345,9 @@ export default {
     bus.$off("category-select-change");
   },
   computed: {
-    filteredPlates() {
-      return this.plates.filter(plate => plate.categoryid === this.categoryid);
-    },
-    slicefilteredPlates() {
-      return this.isSlice
-        ? this.filteredPlates.slice(0, 7)
-        : this.filteredPlates;
-    }
+    // filteredPlates() {
+    //   return this.plates.filter(plate => plate.categoryid === this.categoryid);
+    // }
   }
 };
 </script>
