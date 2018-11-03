@@ -42,7 +42,7 @@ router.post('/user/login', function (req, res) {
 
 router.get('/generators/get', function (req, res) {
     console.log('getgenerator', req.params)
-    pool.query(`SELECT * FROM "generators" WHERE "userid" = $1`, [getUserId(req)], (err, r) => {
+    pool.query(`SELECT * FROM "generators" WHERE "userid" = $1 ORDER BY id`, [getUserId(req)], (err, r) => {
         res.json(err ? err : r.rows)
     })
 });
@@ -50,6 +50,14 @@ router.get('/generators/get', function (req, res) {
 router.post('/generator/add', function (req, res) {
     console.log('addgenerator', req.body)
     pool.query(`INSERT INTO "generators" ("name", "userid") VALUES ($1, $2)`, [req.body.name, getUserId(req)], (err, r) => {
+        res.json(err ? err : r)
+    })
+});
+
+
+router.post('/generator/change', function (req, res) {
+    console.log('changeGenerator', req.body)
+    pool.query(`UPDATE generators SET name = $1  WHERE id = $2`, [req.body.name, req.body.id], (err, r) => {
         res.json(err ? err : r)
     })
 });

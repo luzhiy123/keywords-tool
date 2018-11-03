@@ -25,7 +25,7 @@ export default new Router({
           component: Generator
         },
         {
-          path: 'plates/:id',
+          path: 'plates',
           name: 'plates',
           component: Plates
         }

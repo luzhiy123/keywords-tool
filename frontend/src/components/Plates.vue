@@ -132,7 +132,7 @@ export default {
       bus.$once(eventType, data => {
         this.$http
           .post("/api/category/add", {
-            generatorid: this.$route.params.id,
+            generatorid: this.$route.query.id,
             name: data
           })
           .then(data => {
@@ -150,12 +150,12 @@ export default {
       Promise.all([
         this.$http.get("/api/categories/get", {
           params: {
-            id: this.$route.params.id
+            id: this.$route.query.id
           }
         }),
         this.$http.get("/api/plates/get", {
           params: {
-            generatorid: this.$route.params.id
+            generatorid: this.$route.query.id
           }
         })
       ]).then(res => {
@@ -204,7 +204,7 @@ export default {
             let platesData = [];
             e.target.value = "";
             let importData = {
-              generatorid: this.$route.params.id,
+              generatorid: this.$route.query.id,
               changes: [],
               adds: []
             };
@@ -253,7 +253,7 @@ export default {
       let modal = {
         name: "",
         options: [],
-        generatorid: this.$route.params.id
+        generatorid: this.$route.query.id
       };
       let eventType = JSON.stringify(modal) + "add";
       bus.$once(eventType, name => {

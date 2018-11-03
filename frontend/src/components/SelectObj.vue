@@ -3,7 +3,7 @@
     <div class="meun">
         <div class="category thumbnail">
             <div class="key-info clearfix"> <span class="pull-left">
-                    <div class="checkbox-wrap"><label><strong>分类</strong></label></div>
+                    <div class="checkbox-wrap"><label><strong>{{name}}</strong></label></div>
                 </span> <span class="pull-right"><i class="fa fa-plus-square" @click="addCategory()" title="点击可以添加更多关键词"></i></span>
             </div>
             <ul>
@@ -33,14 +33,15 @@ export default {
   },
   data() {
     return {
-      checkedCategoryId: ""
+      name: '',
+      checkedCategoryId: ''
     };
   },
-  props: ["categories", "plates"],
+  props: ['categories', 'plates'],
   watch: {
     checkedCategoryId(val) {
       this.checkedCategoryId = val;
-      bus.$emit("category-select-change", val);
+      bus.$emit('category-select-change', val);
     },
     categories(val) {
       if (this.addName) {
@@ -50,7 +51,10 @@ export default {
           this.checkedCategoryId = category.id;
         }
       }
-      if (!this.checkedCategoryId || !_.find(val, category => category.id === this.checkedCategoryId)) {
+      if (
+        !this.checkedCategoryId ||
+        !_.find(val, category => category.id === this.checkedCategoryId)
+      ) {
         this.checkedCategoryId = val[0] && val[0].id;
       }
     }
@@ -122,6 +126,9 @@ export default {
         });
       }
     }
+  },
+  mounted() {
+    this.name = this.$route.query.name;
   }
 };
 </script>
