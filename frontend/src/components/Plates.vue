@@ -300,20 +300,22 @@ export default {
       this.isShowTitle = true;
       let list = [];
       _.forEach(this.selected, group => {
-        let buildList = [];
-        if (list.length) {
-          group.forEach(item => {
-            list.forEach(val => {
-              val = val + (this.withSeptal ? " " : "") + item;
-              buildList.push(val);
+        if (group.length) {
+          let buildList = [];
+          if (list.length) {
+            group.forEach(item => {
+              list.forEach(val => {
+                val = val + (this.withSeptal ? " " : "") + item;
+                buildList.push(val);
+              });
             });
-          });
-        } else {
-          group.forEach(item => {
-            buildList.push(item);
-          });
+          } else {
+            group.forEach(item => {
+              buildList.push(item);
+            });
+          }
+          list = buildList;
         }
-        list = buildList;
       });
       this.titleContent = list.join("\n");
     }
