@@ -8,7 +8,7 @@
       <input type="file" @change="parseExcel" id="parseExcel" v-show="false" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
       <button @click="parseClick" class="button r is-primary bottom-btn">导入</button>
       <button @click="exportExcel" class="button r is-primary bottom-btn">导出</button>
-      <button @click="add" class="button r is-primary bottom-btn">添加关键词类</button>
+      <button @click="add" class="button r is-primary bottom-btn" :disabled="!categoryid">添加关键词类</button>
       <button @click="clearSelected" class="button r is-primary bottom-btn">重置选择</button>
     </div>
     <div class="clearfix">
@@ -161,6 +161,9 @@ export default {
       ]).then(res => {
         this.categories = res[0];
         this.plates = res[1];
+        this.filteredPlates = this.plates.filter(
+          plate => plate.categoryid === this.categoryid
+        );
       });
     },
     getCategoryid(name) {
@@ -272,6 +275,7 @@ export default {
         } else {
           modal.name = name;
           modal.categoryid = this.categoryid;
+          modal.index = this.filteredPlates.length;
           this.$http.post("/api/plate/add", modal).then(() => {
             this.loadData();
           });

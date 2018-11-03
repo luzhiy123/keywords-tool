@@ -235,7 +235,7 @@ function getUserId(req) {
 
 function addPlat(params) {
     console.log("addPlatSQL", params)
-    return poolPromise(`INSERT INTO "plates" ("name", "options", "generatorid", "categoryid") VALUES ($1, $2, $3, $4)`, [params.name, JSON.stringify(params.options), params.generatorid, params.categoryid])
+    return poolPromise(`INSERT INTO "plates" ("name", "options", "generatorid", "categoryid", "index") VALUES ($1, $2, $3, $4, $5)`, [params.name, JSON.stringify(params.options), params.generatorid, params.categoryid, params.index])
 }
 
 // 返回数据

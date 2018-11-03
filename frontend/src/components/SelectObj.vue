@@ -70,7 +70,7 @@ export default {
         } else {
           this.$http
             .post("/api/category/add", {
-              generatorid: this.$route.params.id,
+              generatorid: this.$route.query.id,
               name: name
             })
             .then(() => {
