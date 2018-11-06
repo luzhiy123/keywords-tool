@@ -216,6 +216,7 @@ export default {
               row = _.toArray(row);
               if (row[0] !== "类别" && row.length >= 3) {
                 let [categoryName, name, ...options] = row;
+                options.map(item => item.replace(/[\r\n]/g, ''))
                 lastCategoryName = categoryName || lastCategoryName;
                 let plate = this.plates.find(
                   plate =>
@@ -317,6 +318,7 @@ export default {
           list = buildList;
         }
       });
+      list = list.map(item => item.replace(/[\r\n]/g, ''))
       this.titleContent = list.join("\n");
     }
   },
@@ -409,7 +411,6 @@ ul li {
 }
 .checkbox-wrap label {
   cursor: pointer;
-  width: 50%;
   display: inline-block;
 }
 .pull-left .checkbox-wrap label {

@@ -28,6 +28,7 @@ export default {
   },
   methods: {
     save() {
+      this.modal = this.modal.replace(/[\r\n]/g,"")
       if (this.type === "add") {
         this.modal = _.chain(this.modal)
           .split(/，|,/)
