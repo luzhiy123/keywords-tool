@@ -15,20 +15,20 @@ function poolPromise(sql, params) {
 }
 
 // 登录与注册
-router.post('/user/register', function (req, res) {
-    console.log('register', req.body)
-    pool.query(`INSERT INTO "users" ("name", "password") VALUES ($1, $2)`, [req.body.username, req.body.password], (err, r) => {
-        if (err) {
-            res.json({
-                detail: '账号名重复'
-            })
-        } else {
-            pool.query(`SELECT * FROM "users" WHERE "name" = $1 AND "password" = $2;`, [req.body.username, req.body.password], (err, r) => {
-                res.json(err ? err : r.rows[0])
-            })
-        }
-    })
-});
+// router.post('/user/register', function (req, res) {
+//     console.log('register', req.body)
+//     pool.query(`INSERT INTO "users" ("name", "password") VALUES ($1, $2)`, [req.body.username, req.body.password], (err, r) => {
+//         if (err) {
+//             res.json({
+//                 detail: '账号名重复'
+//             })
+//         } else {
+//             pool.query(`SELECT * FROM "users" WHERE "name" = $1 AND "password" = $2;`, [req.body.username, req.body.password], (err, r) => {
+//                 res.json(err ? err : r.rows[0])
+//             })
+//         }
+//     })
+// });
 
 router.post('/user/login', function (req, res) {
     console.log('login', req.body)

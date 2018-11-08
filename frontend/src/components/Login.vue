@@ -15,10 +15,9 @@
   </button>
   
 </p>
-  <div class="center">
+  <!-- <div class="center">
     没有账号去<router-link to="register" class=" is-outlined is-fullwidth" >注册</router-link>
-  </div>
-  <!-- <router-link to="home" class=" is-outlined " >直接去看看</router-link> -->
+  </div> -->
 </div>
 
 </template>
