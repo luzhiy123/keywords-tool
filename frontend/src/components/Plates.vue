@@ -176,24 +176,39 @@ export default {
       return category.name;
     },
     exportExcel() {
-      let data = [["类别", "关键词类"]];
+      let data = [
+        [
+          {
+            v: "类别"
+          },
+          {
+            v: "关键词类"
+          }
+        ]
+      ];
       let plates = _.orderBy(this.plates, "categoryid");
       let lastCategoryId;
       plates.forEach(plate => {
         let row = [
-          lastCategoryId === plate.categoryid
-            ? ""
-            : this.getCategoryName(plate.categoryid),
-          plate.name,
+          {
+            v:
+              lastCategoryId === plate.categoryid
+                ? ""
+                : this.getCategoryName(plate.categoryid)
+          },
+          {
+            v: plate.name
+          },
           ...plate.options
         ];
         while (row.length > data[0].length) {
-          data[0].push("");
+          data[0].push({
+            v: ""
+          });
         }
         lastCategoryId = plate.categoryid;
         data.push(row);
       });
-      console.log(data);
       exportExcel(data);
     },
     parseClick() {
@@ -213,10 +228,10 @@ export default {
             };
             let lastCategoryName = "";
             _.forEach(data, row => {
-              row = _.toArray(row);
-              if (row[0] !== "类别" && row.length >= 3) {
-                let [categoryName, name, ...options] = row;
-                options.map(item => item.replace(/[\r\n]/g, ''))
+              if (row[0].v !== "类别" && row.length >= 3) {
+                let [a, b, ...options] = row;
+                let  categoryName = a.v;
+                let name = b.v;
                 lastCategoryName = categoryName || lastCategoryName;
                 let plate = this.plates.find(
                   plate =>
@@ -318,7 +333,7 @@ export default {
           list = buildList;
         }
       });
-      list = list.map(item => item.replace(/[\r\n]/g, ''))
+      list = list.map(item => item.replace(/[\r\n]/g, ""));
       this.titleContent = list.join("\n");
     }
   },
@@ -396,7 +411,6 @@ ul {
   margin-top: 0px;
   padding-top: 5px;
   height: 400px;
-  overflow: auto;
 }
 ul li {
   height: 30px;
@@ -427,8 +441,28 @@ ul li {
   color: #aaa;
   cursor: pointer;
 }
+.bright {
+  color: #2673db;
+  cursor: pointer;
+}
 .checkbox-wrap + .checkbox-wrap,
 .radio + .radio {
   margin-top: -5px;
+}
+.comment-icon {
+  position: relative;
+}
+.comment-icon textarea {
+  display: none;
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 3px;
+  background: #f8f7e0;
+  width: 150px;
+  height: 50px;
+}
+.comment-icon:hover textarea {
+  display: block;
 }
 </style>

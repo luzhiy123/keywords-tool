@@ -11,9 +11,14 @@
               </span>
         </div>
         <ul>
-            <li class="checkbox-wrap" v-for="(option, index) in plate.options" :key="option">
-                <label :title="option"><input type="checkbox" :value="option" v-model="checkedNames">{{option}}</label>
+            <li class="checkbox-wrap" v-for="(option, index) in plate.options" :key="option.v">
+                <label :title="option.v"><input type="checkbox" :value="option.v" v-model="checkedNames">{{option.v}}</label>
                 <span class="pull-right">
+                    <i class="fa fa-empire comment-icon" aria-hidden="true" 
+                        @click="addComment(option)" 
+                        :class="option.c && option.c.length ? 'bright' : 'text-gray'">
+                        <textarea  v-if="option.c && option.c[0] && option.c[0].t" v-model="option.c[0].t" disabled></textarea>
+                    </i>
                     <i class="fa fa-pencil-square text-gray" @click="editOption(option, index)" title="编辑词语"></i>
                     <i class="fa fa-trash text-danger" @click="deleteOption(option)" title="删除词语"></i>
                 </span>
@@ -41,7 +46,7 @@ export default {
   watch: {
     selectedAll(val) {
       if (val.find(item => item === "all")) {
-        this.checkedNames = this.plate.options;
+        this.checkedNames = this.plate.options.map(item => item.v);
       } else {
         this.checkedNames = [];
       }
@@ -103,16 +108,35 @@ export default {
         bus.$emit("loadPlates");
       });
     },
-    editOption(option, index) {
-      let eventType = JSON.stringify(this.plate) + "option";
+    addComment(option) {
+      let eventType = JSON.stringify(this.plate) + "addComment";
       bus.$once(eventType, newVal => {
-        let plate = _.cloneDeep(this.plate);
-        if (plate.options.indexOf(newVal) > -1) {
+        if (!option.c) {
+          option.c = [];
+        }
+        option.c[0] = {
+          a: "SheetJS",
+          t: newVal
+        };
+        this.changeData(this.plate);
+      });
+      bus.$emit("open-model", {
+        eventType: eventType,
+        title: "编辑备注",
+        type: "comment",
+        data: option.c && option.c[0] ? option.c[0].t : ""
+      });
+    },
+    editOption(option) {
+      let eventType = JSON.stringify(this.plate) + "editOption";
+      bus.$once(eventType, newVal => {
+        let plate = this.plate;
+        if (plate.options.find(item => item.v === newVal)) {
           this.$modal.alert({
             content: "当前名称与已有名称重复或者未修改当前名称！"
           });
         } else {
-          plate.options.splice(index, 1, newVal);
+          option.v = newVal;
           this.changeData(plate);
         }
       });
@@ -120,7 +144,7 @@ export default {
         eventType: eventType,
         title: "编辑选项",
         type: "edit",
-        data: option
+        data: option.v
       });
     },
     deleteOption(option) {
@@ -135,7 +159,7 @@ export default {
     },
     deleteSelected() {
       this.plate.options = this.plate.options.filter(
-        item => !this.checkedNames.includes(item)
+        item => !this.checkedNames.includes(item.v)
       );
       this.checkedNames = [];
       this.changeData(this.plate);
@@ -164,10 +188,17 @@ export default {
         let repetition = [];
         let newOptions = [];
         options.forEach(option => {
-          if (plate.options.indexOf(option) === -1) {
-            newOptions.push(option);
-          } else {
+          if (
+            plate.options.find(item => {
+              item.v === option;
+            })
+          ) {
             repetition.push(option);
+          } else {
+            newOptions.push({
+              v: option,
+              c: []
+            });
           }
         });
         plate.options.push(...newOptions);

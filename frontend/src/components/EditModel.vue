@@ -10,6 +10,11 @@
         <input class="input" type="text" v-model="modal" placeholder="编辑单个词语">
       </p>
     </div>
+    <div v-if="type==='comment'">
+      <p class="control">
+          <textarea class="textarea" v-model="modal" placeholder="添加备注"></textarea>
+      </p>
+    </div>
     </modal>
 </template>
 
@@ -28,8 +33,8 @@ export default {
   },
   methods: {
     save() {
-      this.modal = this.modal.replace(/[\r\n]/g,"")
       if (this.type === "add") {
+        this.modal = this.modal.replace(/[\r\n]/g, "");
         this.modal = _.chain(this.modal)
           .split(/，|,/)
           .uniq()
@@ -54,6 +59,6 @@ export default {
   },
   beforeDestroy() {
     bus.$off("open-model");
-  },
+  }
 };
 </script>

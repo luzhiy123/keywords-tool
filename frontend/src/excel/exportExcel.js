@@ -1,4 +1,4 @@
-import XLSX  from 'js-xlsx';
+import XLSX from 'xlsx';
 
 let tmpDown; //导出的二进制对象
 function downloadExl(json, type) {
@@ -8,16 +8,27 @@ function downloadExl(json, type) {
     //keyMap =Object.keys(json[0]);
     for (var k in tmpdata) {
         keyMap.push(k);
-        json[0][k] = k;
+        json[0][k] = {
+            v: k
+        };
     }
-    var tmpdata = [];//用来保存转换好的json 
-    json.map((v, i) => keyMap.map((k, j) => Object.assign({}, {
-        v: v[k],
-        position: (j > 25 ? getCharCol(j) : String.fromCharCode(65 + j)) + (i + 1)
-    }))).reduce((prev, next) => prev.concat(next)).forEach((v, i) => tmpdata[v.position] = {
-        v: v.v
-    });
-    var outputPos = Object.keys(tmpdata); //设置区域,比如表格从A1到D10
+    var tmpdata = [];//用来保存转换好的json
+    json.map((cell, i) => {
+        keyMap.map((k, j) => {
+            Object.assign({}, cell[k], {
+                position: (j > 25 ? getCharCol(j) : String.fromCharCode(65 + j)) + (i + 1)
+            })
+        })
+    }).reduce((prev, next) => prev.concat(next)).forEach((data, i) => {
+            tmpdata[data.position] = {
+                v: data.v,
+                c: data.c
+            };
+            if (tmpdata[data.position].c) {
+                tmpdata[data.position].c.hidden = true;
+            }
+        });
+    var outputPos = Object.keys(tmpdata); //设置区域,比如表格从A1到D10\
     var tmpWB = {
         SheetNames: ['mySheet'], //保存的表标题
         Sheets: {
