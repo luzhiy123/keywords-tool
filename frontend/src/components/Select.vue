@@ -114,10 +114,14 @@ export default {
         if (!option.c) {
           option.c = [];
         }
-        option.c[0] = {
-          a: "SheetJS",
-          t: newVal
-        };
+        if (newVal) {
+          option.c[0] = {
+            a: "SheetJS",
+            t: newVal
+          };
+        } else {
+          option.c = [];
+        }
         this.changeData(this.plate);
       });
       bus.$emit("open-model", {

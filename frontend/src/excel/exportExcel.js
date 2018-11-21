@@ -14,8 +14,8 @@ function downloadExl(json, type) {
     }
     var tmpdata = [];//用来保存转换好的json
     json.map((cell, i) => {
-        keyMap.map((k, j) => {
-            Object.assign({}, cell[k], {
+        return keyMap.map((k, j) => {
+            return Object.assign({}, cell[k], {
                 position: (j > 25 ? getCharCol(j) : String.fromCharCode(65 + j)) + (i + 1)
             })
         })
