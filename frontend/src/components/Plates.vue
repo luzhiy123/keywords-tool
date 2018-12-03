@@ -411,6 +411,7 @@ ul {
   margin-top: 0px;
   padding-top: 5px;
   height: 400px;
+  overflow: auto;
 }
 ul li {
   height: 30px;
